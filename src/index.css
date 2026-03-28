@@ -20,3 +20,14 @@ html, body, #root {
     opacity: 0.8;
   }
 }
+
+/* Hide the default tldraw cursor for the current user */
+.tl-cursor {
+  display: none !important;
+}
+
+/* Only hide the current user's actual cursor when on the canvas, if desired.
+   Wait, the user requested "也不要把用户自己的鼠标在页面上额外展示", which means 
+   we should not show the multi-player cursor for the current user.
+   By default, tldraw might render the current user's cursor if we added it to `updateUsers`.
+   Let's ensure we don't render the local user's cursor in the UI or hide it via CSS. */

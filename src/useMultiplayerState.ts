@@ -99,8 +99,9 @@ export function useMultiplayerState(roomId: string) {
       user: initialUser
     });
 
-    // Update the app user config
-    app.updateUsers([initialUser]);
+    // DO NOT update the app user config with our own initialUser here,
+    // otherwise tldraw will render a multiplayer cursor for ourselves.
+    // app.updateUsers([initialUser]);
 
     awareness.on('change', () => {
       // Update user count

@@ -1,5 +1,6 @@
 import { Tldraw } from '@tldraw/tldraw';
 import { useMultiplayerState } from './useMultiplayerState';
+import { CustomCursor } from './CustomCursor';
 
 export default function App() {
   const ROOM_ID = 'tldraw-yjs-room-1';
@@ -86,6 +87,9 @@ export default function App() {
         onChangePage={onChangePage}
         onChangePresence={onChangePresence}
         showUI={true}
+        components={{
+          Cursor: CustomCursor,
+        }}
       />
     </div>
   );
