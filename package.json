@@ -1,0 +1,28 @@
+{
+  "name": "tldraw-yjs-demo",
+  "version": "1.0.0",
+  "description": "Multiplayer real-time collaborative whiteboard",
+  "scripts": {
+    "dev:client": "vite",
+    "dev:server": "node server.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "tsc && vite build"
+  },
+  "dependencies": {
+    "@tldraw/tldraw": "^1.29.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "y-websocket": "^1.5.0",
+    "yjs": "^13.6.8",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/ws": "^8.5.10",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  }
+}
