@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: vita_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: vita_user
+      POSTGRES_PASSWORD: vita_password
+      POSTGRES_DB: vita_board
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:7-alpine
+    container_name: vita_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vita_backend
+    ports:
+      - "3000:3000"
+      - "1234:1234"
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_USER: vita_user
+      DB_PASSWORD: vita_password
+      DB_NAME: vita_board
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vita_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
