@@ -1,9 +1,34 @@
 const WebSocket = require('ws');
 const http = require('http');
-const { setupWSConnection } = require('y-websocket/bin/utils');
+const Y = require('yjs');
+const { setupWSConnection, setPersistence } = require('y-websocket/bin/utils');
+const { LeveldbPersistence } = require('y-leveldb');
+const path = require('path');
 
 const port = process.env.PORT || 1234;
 const host = '0.0.0.0';
+
+// Setup LevelDB Persistence
+const ldbPath = path.join(__dirname, './yjs-data');
+const ldb = new LeveldbPersistence(ldbPath);
+
+setPersistence({
+  bindState: async (docName, ydoc) => {
+    // Here you bind the map of the document to LevelDB
+    const persistedYdoc = await ldb.getYDoc(docName);
+    const newUpdates = Y.encodeStateAsUpdate(ydoc);
+    ldb.storeUpdate(docName, newUpdates);
+    Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
+    
+    ydoc.on('update', update => {
+      ldb.storeUpdate(docName, update);
+    });
+  },
+  writeState: async (docName, ydoc) => {
+    // This is called when all clients leave the document
+    return Promise.resolve();
+  }
+});
 
 const server = http.createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/plain' });
