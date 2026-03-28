@@ -1,10 +1,9 @@
 import { Tldraw } from '@tldraw/tldraw';
 import { useMultiplayerState } from './useMultiplayerState';
 
-const ROOM_ID = 'tldraw-yjs-demo-room';
-
 export default function App() {
-  const { onMount, onChangePage, onChangePresence, loading } = useMultiplayerState(ROOM_ID);
+  const ROOM_ID = 'tldraw-yjs-room-1';
+  const { onMount, onChangePage, onChangePresence, loading, userCount } = useMultiplayerState(ROOM_ID);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -35,6 +34,38 @@ export default function App() {
         </span>
       </div>
 
+      {/* User Count Badge */}
+      {!loading && (
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          right: '16px',
+          zIndex: 999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          padding: '6px 12px',
+          borderRadius: '20px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          border: '1px solid #e5e7eb',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontSize: '14px',
+          fontWeight: 500,
+          color: '#374151',
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: '#10b981',
+            boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+          }} />
+          {userCount} {userCount === 1 ? 'User' : 'Users'} Online
+        </div>
+      )}
+
       {loading && (
         <div style={{ 
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
@@ -54,6 +85,7 @@ export default function App() {
         onMount={onMount}
         onChangePage={onChangePage}
         onChangePresence={onChangePresence}
+        showUI={true}
       />
     </div>
   );

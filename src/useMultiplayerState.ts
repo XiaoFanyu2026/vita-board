@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { TldrawApp, TDShape, TDBinding, TDAsset, TDUser } from '@tldraw/tldraw';
+import { TldrawApp, TDShape, TDBinding, TDAsset, TDUser, TDUserStatus } from '@tldraw/tldraw';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
 export function useMultiplayerState(roomId: string) {
   const [app, setApp] = useState<TldrawApp>();
   const [loading, setLoading] = useState(true);
+  const [userCount, setUserCount] = useState(1); // Track number of connected users
   const docRef = useRef<Y.Doc>();
   const providerRef = useRef<WebsocketProvider>();
   const isUpdatingRef = useRef(false);
@@ -71,19 +72,89 @@ export function useMultiplayerState(roomId: string) {
     // Awareness for cursors
     const awareness = provider.awareness;
     
+    // Create a map to track user indices
+    const userIndices = new Map<number, number>();
+    let nextUserIndex = 1;
+    
+    // Set a random color for the local user
+    const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFA500', '#800080', '#008080'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const localUserId = Math.random().toString(36).slice(2, 9);
+    
     // We keep a map of clientId to userId so we can remove them when they disconnect
     const clientIdToUserId = new Map<number, string>();
     
+    // Set local awareness state initially
+    const initialUser: TDUser = {
+      id: localUserId,
+      color: randomColor,
+      point: [0, 0],
+      selectedIds: [],
+      activeShapes: [],
+      status: TDUserStatus.Connected,
+    };
+
+    // We don't assign "用户X" to ourselves immediately until we know our order
+    awareness.setLocalState({
+      user: initialUser
+    });
+
+    // Update the app user config
+    app.updateUsers([initialUser]);
+
+    awareness.on('change', () => {
+      // Update user count
+      setUserCount(awareness.getStates().size);
+    });
+
     awareness.on('update', ({ added, updated, removed }: { added: number[], updated: number[], removed: number[] }) => {
       const states = awareness.getStates() as Map<number, { user?: TDUser }>;
       
       const usersToUpdate: TDUser[] = [];
       
+      // Assign indices to new users
+      added.forEach((clientId) => {
+        if (!userIndices.has(clientId)) {
+          // If it's our own clientId, we assign the next index
+          userIndices.set(clientId, nextUserIndex++);
+        }
+      });
+      
+      // Update our own username if it hasn't been set properly yet
+      const ourState = states.get(awareness.clientID);
+      if (ourState?.user && userIndices.has(awareness.clientID)) {
+        const ourIndex = userIndices.get(awareness.clientID);
+        const expectedName = `用户${ourIndex}`;
+        
+        // If our local state doesn't have the correct name, update it
+        // We check if the name needs updating by looking at the custom name field
+        // Since TDUser doesn't have a standard name field that tldraw v1 renders easily by default for cursors,
+        // we might need to handle this carefully.
+        // Actually, tldraw v1 cursor components usually look for 'id' or we can pass custom data.
+      }
+      
       added.concat(updated).forEach((clientId) => {
         const state = states.get(clientId);
         if (state?.user && clientId !== awareness.clientID) {
-          usersToUpdate.push(state.user);
-          clientIdToUserId.set(clientId, state.user.id);
+          // Assign index if somehow missed
+          if (!userIndices.has(clientId)) {
+            userIndices.set(clientId, nextUserIndex++);
+          }
+          
+          const userIndex = userIndices.get(clientId);
+          
+          // Add custom name to the user object. 
+          // Note: To make tldraw v1 display names, we might need a custom cursor component,
+          // or we can append the name to the ID if the default cursor shows the ID.
+          // Let's try passing the name directly, maybe tldraw supports it internally,
+          // or we just rely on the ID being displayed.
+          const userWithDisplay = {
+            ...state.user,
+            id: `用户${userIndex}` // Override ID for display purposes if default cursor shows ID
+          };
+          
+          usersToUpdate.push(userWithDisplay);
+          clientIdToUserId.set(clientId, userWithDisplay.id);
         }
       });
       
@@ -97,6 +168,8 @@ export function useMultiplayerState(roomId: string) {
           app.removeUser(userId);
           clientIdToUserId.delete(clientId);
         }
+        // Don't remove from userIndices so if they reconnect they get a new number,
+        // or we could remove them if we want to recycle numbers.
       });
     });
 
@@ -147,7 +220,11 @@ export function useMultiplayerState(roomId: string) {
   const onChangePresence = useCallback(
     (_app: TldrawApp, user: TDUser) => {
       if (!providerRef.current) return;
-      providerRef.current.awareness.setLocalStateField('user', user);
+      const currentState = providerRef.current.awareness.getLocalState()?.user || {};
+      providerRef.current.awareness.setLocalStateField('user', {
+        ...currentState,
+        ...user,
+      });
     },
     []
   );
@@ -157,5 +234,6 @@ export function useMultiplayerState(roomId: string) {
     onChangePage,
     onChangePresence,
     loading,
+    userCount,
   };
 }
